@@ -176,7 +176,9 @@ def 初步查询(keys: list, sli: slice, site: Optional[str] = None) -> Tuple[Li
         for (url, vs), loc, 荣, 相关 in zip(候选, locs, 荣s, 相关s):
             调整 = 调整表.get(loc, 1)
             不喜欢 = 坏(url)
-            d[url] = 相关*荣*(1-不喜欢)*调整, 相关, 荣, (1-不喜欢), 1, 1, 调整, 1, 1, 1, 1
+            d[url] = 相关*荣*(1-不喜欢)*调整*0.1, 相关, 荣, (1-不喜欢), 1, \
+                1, 调整, 1, 1, 1, \
+                1, 0.1
     with 计时(f'初排序{keys}'):
         q = sorted([(v, k) for k, v in d.items()], reverse=True)
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=256)
@@ -205,7 +207,7 @@ def 初步查询(keys: list, sli: slice, site: Optional[str] = None) -> Tuple[Li
             if url过去天数 > 30:
                 url时间倍 = ((2 + 权重每日衰减)/3) ** url过去天数
             词倍 = 1 - min(len({*词} & 坏词)*减权关键词权重, 0.5)
-            vv = v[0]*语种倍*时间倍*词倍*url时间倍, v[1], v[2], v[3], 语种倍, v[5], v[6], 时间倍, v[8], 词倍, url时间倍
+            vv = v[0]*10*语种倍*时间倍*词倍*url时间倍, v[1], v[2], v[3], 语种倍, v[5], v[6], 时间倍, v[8], 词倍, url时间倍, 1
             return (vv, k)
         q[:256] = [*pool.map(r, q[:256])]
     q.sort(reverse=True)
@@ -216,7 +218,7 @@ def 初步查询(keys: list, sli: slice, site: Optional[str] = None) -> Tuple[Li
             else:
                 重复倍 = 1-(h-0.5)
             连续倍 = 连续关键词权重 ** x
-            vv = v[0]*重复倍*连续倍, v[1], v[2], v[3], v[4], 重复倍, v[6], v[7], 连续倍, v[9], v[10]
+            vv = v[0]*重复倍*连续倍, v[1], v[2], v[3], v[4], 重复倍, v[6], v[7], 连续倍, v[9], v[10], v[11]
             return vv, k
         def rf(item):
             v, url = item
@@ -267,9 +269,10 @@ def 查询(keys: list, sli=slice(0, 10), site: Optional[str] = None):
                     msg['描述'] = ''
                 elif len(msg['描述']) < 3 and len(msg['文本']) >= 3:
                     msg['描述'] = ''
-        原因 = {'内容与关键词相关': v[1], '反向链接加成': v[2], 'URL格式': v[3], '域名的语种': v[4], '标题与其他结果重复': v[5], '对域名的预调整': v[6], '我们对这个域名的认知过期了': v[7], '连续的关键词': v[8], '域名的内容': v[9], '我们对这个URL的认知过期了': v[10]}
+        原因 = {'内容与关键词相关': v[1], '反向链接加成': v[2], 'URL格式': v[3], '域名的语种': v[4], '标题与其他结果重复': v[5], '对域名的预调整': v[6], '我们对这个域名的认知过期了': v[7], '连续的关键词': v[8], '域名的内容': v[9], '我们对这个URL的认知过期了': v[10], '省略低关联度项的计算': v[11]}
         res.append({
             '分数': v[0],
+            '完全分数': v,
             '原因': {k: v for k, v in 原因.items() if not 0.999 < v < 1.001},
             '网址': unquote(url),
             '信息': msg,
